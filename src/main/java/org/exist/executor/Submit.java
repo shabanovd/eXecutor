@@ -59,10 +59,9 @@ public class Submit extends Function {
         if (!a.isEmpty()) {
             callback = (FunctionReference) a.itemAt(0);
         }
+        RunFunction f = new RunFunction(getContext(), contextSequence, getArgument(0), callback);
 
-        return new StringValue(
-                (new RunFunction(getContext(), contextSequence, getArgument(0), callback)).uuid
-        );
+        return new StringValue(Module.submit(f));
     }
 
 
@@ -90,7 +89,6 @@ public class Submit extends Function {
 
             //XXX: copy!!! and replace context
             this.expr = expr;
-            Module.submit(uuid, this);
         }
 
         @Override
