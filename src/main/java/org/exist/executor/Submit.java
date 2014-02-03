@@ -59,17 +59,13 @@ public class Submit extends Function {
         if (!a.isEmpty()) {
             callback = (FunctionReference) a.itemAt(0);
         }
+        RunFunction f = new RunFunction(getContext(), contextSequence, getArgument(0), callback);
 
-        String uuid = UUID.randomUUID().toString();
-        return new StringValue(
-            Module.submit(uuid, new RunFunction(uuid, getContext(), contextSequence, getArgument(0), callback))
-        );
+        return new StringValue(Module.submit(f));
     }
 
 
     class RunFunction implements Callable<Void> {
-
-        private String uuid;
 
         Database db;
         Subject subject;
@@ -80,12 +76,13 @@ public class Submit extends Function {
         Expression expr;
         FunctionReference callback;
 
-        public RunFunction(String uuid, XQueryContext context, Sequence contextSequence, Expression expr, FunctionReference callback) {
+        final String uuid = UUID.randomUUID().toString();
+
+        public RunFunction(XQueryContext context, Sequence contextSequence, Expression expr, FunctionReference callback) {
             final DBBroker broker = context.getBroker();
             db = broker.getDatabase();
             subject = broker.getSubject();
 
-            this.uuid = uuid;
             this.context = context.copyContext();
             this.contextSequence = contextSequence;
             this.callback = callback;

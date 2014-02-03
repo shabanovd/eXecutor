@@ -69,9 +69,9 @@ public class Module extends AbstractInternalModule {
     
     protected final static Map<String, Future> futures = new HashMap<String, Future>();
     
-    protected static <T> String submit(String uuid, Callable<T> task) {
-        Future<T> future = service.submit(task);
-        futures.put(uuid, future);
-        return uuid;
+    protected static String submit(Submit.RunFunction task) {
+        Future future = service.submit(task);
+        futures.put(task.uuid, future);
+        return task.uuid;
     }
 }
