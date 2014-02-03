@@ -19,25 +19,16 @@
  */
 package org.exist.executor;
 
+import java.util.ArrayList;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.exist.Database;
 import org.exist.dom.QName;
 import org.exist.security.Subject;
 import org.exist.storage.DBBroker;
-import org.exist.xquery.Cardinality;
-import org.exist.xquery.Expression;
-import org.exist.xquery.Function;
-import org.exist.xquery.FunctionSignature;
-import org.exist.xquery.XPathException;
-import org.exist.xquery.XQueryContext;
-import org.exist.xquery.value.FunctionParameterSequenceType;
-import org.exist.xquery.value.FunctionReturnSequenceType;
-import org.exist.xquery.value.Item;
-import org.exist.xquery.value.Sequence;
-import org.exist.xquery.value.SequenceType;
-import org.exist.xquery.value.StringValue;
-import org.exist.xquery.value.Type;
+import org.exist.xquery.*;
+import org.exist.xquery.value.*;
 
 /**
  * @author <a href="mailto:shabanovd@gmail.com">Dmitriy Shabanov</a>
@@ -49,8 +40,9 @@ public class Submit extends Function {
         new FunctionSignature(
             new QName("submit", Module.NAMESPACE_URI, Module.PREFIX),
             "Submit task. ",
-            new SequenceType[] { 
-                new FunctionParameterSequenceType("expression", Type.ITEM, Cardinality.EXACTLY_ONE, "")
+            new SequenceType[] {
+                    new FunctionParameterSequenceType("expression", Type.ITEM, Cardinality.EXACTLY_ONE, ""),
+                    new FunctionParameterSequenceType("callback", Type.FUNCTION_REFERENCE, Cardinality.ZERO_OR_ONE, "")
             },
             new FunctionReturnSequenceType(Type.NODE, Cardinality.ZERO_OR_MORE, "the results of the evaluated expression")
         ),
@@ -61,46 +53,62 @@ public class Submit extends Function {
     }
     
     public Sequence eval(Sequence contextSequence, Item contextItem) throws XPathException {
-        
+
+        FunctionReference callback = null;
+
+        Sequence a = getArgument(1).eval(contextSequence, contextItem);
+        if (!a.isEmpty()) {
+            callback = (FunctionReference) a.itemAt(0);
+        }
+
+        String uuid = UUID.randomUUID().toString();
         return new StringValue(
-            Module.submit(new RunFunction(getContext(), contextSequence, getArgument(0)))
+            Module.submit(uuid, new RunFunction(uuid, getContext(), contextSequence, getArgument(0), callback))
         );
     }
-    
-    
-    class RunFunction implements Callable<Sequence> {
-        
+
+
+    class RunFunction implements Callable<Void> {
+
+        private String uuid;
+
         Database db;
         Subject subject;
 
         XQueryContext context;
         Sequence contextSequence;
-        
+
         Expression expr;
-        
-        public RunFunction(XQueryContext context, Sequence contextSequence, Expression expr) {
+        FunctionReference callback;
+
+        public RunFunction(String uuid, XQueryContext context, Sequence contextSequence, Expression expr, FunctionReference callback) {
             final DBBroker broker = context.getBroker();
             db = broker.getDatabase();
             subject = broker.getSubject();
 
+            this.uuid = uuid;
             this.context = context.copyContext();
             this.contextSequence = contextSequence;
-            
+            this.callback = callback;
+
             //XXX: copy!!! and replace context
             this.expr = expr;
         }
 
         @Override
-        public Sequence call() throws Exception {
-            
+        public Void call() throws Exception {
             DBBroker broker = null;
             try {
                 broker = db.get(subject);
-                
-                return expr.eval(contextSequence, null);
+                Sequence r = expr.eval(contextSequence, null);
+                if (callback != null) {
+                    callback.evalFunction(contextSequence, null, new Sequence[]{r});
+                }
             } finally {
+                Module.futures.remove(uuid);
                 db.release(broker);
             }
+            return null;
         }
     }
 }
