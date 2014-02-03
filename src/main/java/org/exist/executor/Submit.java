@@ -19,7 +19,6 @@
  */
 package org.exist.executor;
 
-import java.util.ArrayList;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
