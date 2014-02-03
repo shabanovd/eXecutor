@@ -60,16 +60,13 @@ public class Submit extends Function {
             callback = (FunctionReference) a.itemAt(0);
         }
 
-        String uuid = UUID.randomUUID().toString();
         return new StringValue(
-            Module.submit(uuid, new RunFunction(uuid, getContext(), contextSequence, getArgument(0), callback))
+                (new RunFunction(getContext(), contextSequence, getArgument(0), callback)).uuid
         );
     }
 
 
     class RunFunction implements Callable<Void> {
-
-        private String uuid;
 
         Database db;
         Subject subject;
@@ -80,18 +77,20 @@ public class Submit extends Function {
         Expression expr;
         FunctionReference callback;
 
-        public RunFunction(String uuid, XQueryContext context, Sequence contextSequence, Expression expr, FunctionReference callback) {
+        final String uuid = UUID.randomUUID().toString();
+
+        public RunFunction(XQueryContext context, Sequence contextSequence, Expression expr, FunctionReference callback) {
             final DBBroker broker = context.getBroker();
             db = broker.getDatabase();
             subject = broker.getSubject();
 
-            this.uuid = uuid;
             this.context = context.copyContext();
             this.contextSequence = contextSequence;
             this.callback = callback;
 
             //XXX: copy!!! and replace context
             this.expr = expr;
+            Module.submit(uuid, this);
         }
 
         @Override
