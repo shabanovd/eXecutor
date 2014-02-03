@@ -22,7 +22,6 @@ package org.exist.executor;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
@@ -70,12 +69,9 @@ public class Module extends AbstractInternalModule {
     
     protected final static Map<String, Future> futures = new HashMap<String, Future>();
     
-    protected static <T> String submit(Callable<T> task) {
+    protected static <T> String submit(String uuid, Callable<T> task) {
         Future<T> future = service.submit(task);
-        
-        String uuid = UUID.randomUUID().toString();
         futures.put(uuid, future);
-        
         return uuid;
     }
 }
