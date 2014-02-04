@@ -22,19 +22,23 @@ package org.exist.executor;
 import org.exist.dom.QName;
 import org.exist.xquery.*;
 import org.exist.xquery.value.*;
+import org.exist.xquery.value.StringValue;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author <a href="mailto:shabanovd@gmail.com">Dmitriy Shabanov</a>
  *
  */
-public class Submit extends Function {
-    
+public class Schedule extends Function {
+
     public final static FunctionSignature signatures[] = {
             new FunctionSignature(
                     new QName("submit", Module.NAMESPACE_URI, Module.PREFIX),
                     "Submit task. ",
                     new SequenceType[] {
                             new FunctionParameterSequenceType("expression", Type.ITEM, Cardinality.EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("time", Type.INTEGER, Cardinality.EXACTLY_ONE, ""),
                     },
                     new FunctionReturnSequenceType(Type.NODE, Cardinality.ZERO_OR_MORE, "the results of the evaluated expression")
             ),
@@ -43,28 +47,30 @@ public class Submit extends Function {
                     "Submit task. ",
                     new SequenceType[] {
                             new FunctionParameterSequenceType("expression", Type.ITEM, Cardinality.EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("time", Type.INTEGER, Cardinality.EXACTLY_ONE, ""),
                             new FunctionParameterSequenceType("callback", Type.FUNCTION_REFERENCE, Cardinality.EXACTLY_ONE, ""),
                     },
                     new FunctionReturnSequenceType(Type.NODE, Cardinality.ZERO_OR_MORE, "the results of the evaluated expression")
             ),
     };
 
-    public Submit(XQueryContext context, FunctionSignature signature) {
+    public Schedule(XQueryContext context, FunctionSignature signature) {
         super(context, signature);
     }
     
     public Sequence eval(Sequence contextSequence, Item contextItem) throws XPathException {
         FunctionReference callback = null;
-        if (getArgumentCount()>1) {
-            callback = (FunctionReference) getArgument(1).eval(contextSequence, contextItem).itemAt(0);
+        if (getArgumentCount()>2) {
+            callback = (FunctionReference) getArgument(2).eval(contextSequence, contextItem).itemAt(0);
         }
         RunFunction f = new RunFunction(getContext(), contextSequence, getArgument(0), callback) {
             @Override
             void remove() {
-                Module.futures.remove(uuid);
+                Module.scheduled.remove(uuid);
             }
         };
-        return new StringValue(Module.submit(f));
+        long t = ((IntegerValue) getArgument(1).eval(contextSequence, contextItem).itemAt(1)).getLong();
+        return new StringValue(Module.shedule(f, t));
     }
 
 }
