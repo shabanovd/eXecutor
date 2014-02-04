@@ -22,10 +22,7 @@ package org.exist.executor;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 import org.exist.xquery.AbstractInternalModule;
 import org.exist.xquery.FunctionDef;
@@ -42,7 +39,10 @@ public class Module extends AbstractInternalModule {
     private final static String DESCRIPTION = "Module provides a way of decoupling task submission from the mechanics of how each task will be run, including details of thread use, scheduling, etc..";
 
     private final static FunctionDef[] functions = {
-        new FunctionDef(Submit.signatures[0], Submit.class)
+            new FunctionDef(Submit.signatures[0], Submit.class),
+            new FunctionDef(Submit.signatures[1], Submit.class),
+            new FunctionDef(Schedule.signatures[0], Schedule.class),
+            new FunctionDef(Schedule.signatures[1], Schedule.class),
     };
     
     public Module(Map<String, List<? extends Object>> parameters) {
@@ -64,14 +64,22 @@ public class Module extends AbstractInternalModule {
     public String getReleaseVersion() {
         return RELEASED_IN_VERSION;
     }
-    
-    protected final static ExecutorService service = Executors.newCachedThreadPool();
-    
+
+    protected final static ExecutorService executor = Executors.newCachedThreadPool();
+    protected final static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10); //XXX: how mach?
+
     protected final static Map<String, Future> futures = new HashMap<String, Future>();
-    
-    protected static String submit(Submit.RunFunction task) {
-        Future future = service.submit(task);
+    protected final static Map<String, ScheduledFuture> scheduled = new HashMap<String, ScheduledFuture>();
+
+    protected static String submit(RunFunction task) {
+        Future future = executor.submit(task);
         futures.put(task.uuid, future);
+        return task.uuid;
+    }
+
+    protected static String shedule(RunFunction task, long t) {
+        ScheduledFuture future = scheduler.schedule(task, t, TimeUnit.MILLISECONDS);
+        scheduled.put(task.uuid, future);
         return task.uuid;
     }
 }
