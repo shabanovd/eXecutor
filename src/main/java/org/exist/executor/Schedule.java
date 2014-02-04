@@ -69,7 +69,7 @@ public class Schedule extends Function {
                 Module.scheduled.remove(uuid);
             }
         };
-        long t = ((IntegerValue) getArgument(1).eval(contextSequence, contextItem).itemAt(1)).getLong();
+        long t = ((IntegerValue) getArgument(1).eval(contextSequence, contextItem).itemAt(0)).getLong();
         return new StringValue(Module.shedule(f, t));
     }
 
