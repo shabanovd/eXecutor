@@ -34,7 +34,7 @@ public class Schedule extends Function {
 
     public final static FunctionSignature signatures[] = {
             new FunctionSignature(
-                    new QName("submit", Module.NAMESPACE_URI, Module.PREFIX),
+                    new QName("schedule", Module.NAMESPACE_URI, Module.PREFIX),
                     "Submit task. ",
                     new SequenceType[] {
                             new FunctionParameterSequenceType("expression", Type.ITEM, Cardinality.EXACTLY_ONE, ""),
@@ -43,7 +43,7 @@ public class Schedule extends Function {
                     new FunctionReturnSequenceType(Type.NODE, Cardinality.ZERO_OR_MORE, "the results of the evaluated expression")
             ),
             new FunctionSignature(
-                    new QName("submit", Module.NAMESPACE_URI, Module.PREFIX),
+                    new QName("schedule", Module.NAMESPACE_URI, Module.PREFIX),
                     "Submit task. ",
                     new SequenceType[] {
                             new FunctionParameterSequenceType("expression", Type.ITEM, Cardinality.EXACTLY_ONE, ""),
