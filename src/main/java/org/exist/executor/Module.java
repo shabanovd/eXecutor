@@ -40,6 +40,11 @@ public class Module extends AbstractInternalModule {
     private final static String DESCRIPTION = "Module provides a way of decoupling task submission from the mechanics of how each task will be run, including details of thread use, scheduling, etc..";
 
     private final static FunctionDef[] functions = {
+            new FunctionDef(Exec.signatures[0], Exec.class),
+            new FunctionDef(Exec.signatures[1], Exec.class),
+            new FunctionDef(Exec.signatures[2], Exec.class),
+            new FunctionDef(Exec.signatures[3], Exec.class),
+            new FunctionDef(Exec.signatures[4], Exec.class),
             new FunctionDef(Submit.signatures[0], Submit.class),
             new FunctionDef(Submit.signatures[1], Submit.class),
             new FunctionDef(Schedule.signatures[0], Schedule.class),
