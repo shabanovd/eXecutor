@@ -35,8 +35,9 @@ public class Schedule extends Function {
     public final static FunctionSignature signatures[] = {
             new FunctionSignature(
                     new QName("schedule", Module.NAMESPACE_URI, Module.PREFIX),
-                    "Submit task. ",
+                    "Schedule task. ",
                     new SequenceType[] {
+                            new FunctionParameterSequenceType("scheduler", Type.STRING, Cardinality.EXACTLY_ONE, ""),
                             new FunctionParameterSequenceType("expression", Type.ITEM, Cardinality.EXACTLY_ONE, ""),
                             new FunctionParameterSequenceType("time", Type.INTEGER, Cardinality.EXACTLY_ONE, ""),
                     },
@@ -46,6 +47,7 @@ public class Schedule extends Function {
                     new QName("schedule", Module.NAMESPACE_URI, Module.PREFIX),
                     "Submit task. ",
                     new SequenceType[] {
+                            new FunctionParameterSequenceType("scheduler", Type.STRING, Cardinality.EXACTLY_ONE, ""),
                             new FunctionParameterSequenceType("expression", Type.ITEM, Cardinality.EXACTLY_ONE, ""),
                             new FunctionParameterSequenceType("time", Type.INTEGER, Cardinality.EXACTLY_ONE, ""),
                             new FunctionParameterSequenceType("callback", Type.FUNCTION_REFERENCE, Cardinality.EXACTLY_ONE, ""),
@@ -60,17 +62,18 @@ public class Schedule extends Function {
     
     public Sequence eval(Sequence contextSequence, Item contextItem) throws XPathException {
         FunctionReference callback = null;
-        if (getArgumentCount()>2) {
-            callback = (FunctionReference) getArgument(2).eval(contextSequence, contextItem).itemAt(0);
+        if (getArgumentCount()>3) {
+            callback = (FunctionReference) getArgument(3).eval(contextSequence, contextItem).itemAt(0);
         }
-        RunFunction f = new RunFunction(getContext(), contextSequence, getArgument(0), callback) {
+        RunFunction f = new RunFunction(getContext(), contextSequence, getArgument(1), callback) {
             @Override
             void remove() {
                 Module.scheduled.remove(uuid);
             }
         };
-        long t = ((IntegerValue) getArgument(1).eval(contextSequence, contextItem).itemAt(0)).getLong();
-        return new StringValue(Module.shedule(f, t));
+        long t = ((IntegerValue) getArgument(2).eval(contextSequence, contextItem).itemAt(0)).getLong();
+        String scheduler = getArgument(0).eval(contextSequence, contextItem).itemAt(0).getStringValue();
+        return new StringValue(Module.shedule(scheduler, f, t));
     }
 
 }

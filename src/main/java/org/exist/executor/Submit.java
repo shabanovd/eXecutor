@@ -34,6 +34,7 @@ public class Submit extends Function {
                     new QName("submit", Module.NAMESPACE_URI, Module.PREFIX),
                     "Submit task. ",
                     new SequenceType[] {
+                            new FunctionParameterSequenceType("executor", Type.STRING, Cardinality.EXACTLY_ONE, ""),
                             new FunctionParameterSequenceType("expression", Type.ITEM, Cardinality.EXACTLY_ONE, ""),
                     },
                     new FunctionReturnSequenceType(Type.NODE, Cardinality.ZERO_OR_MORE, "the results of the evaluated expression")
@@ -42,6 +43,7 @@ public class Submit extends Function {
                     new QName("submit", Module.NAMESPACE_URI, Module.PREFIX),
                     "Submit task. ",
                     new SequenceType[] {
+                            new FunctionParameterSequenceType("executor", Type.STRING, Cardinality.EXACTLY_ONE, ""),
                             new FunctionParameterSequenceType("expression", Type.ITEM, Cardinality.EXACTLY_ONE, ""),
                             new FunctionParameterSequenceType("callback", Type.FUNCTION_REFERENCE, Cardinality.EXACTLY_ONE, ""),
                     },
@@ -55,16 +57,17 @@ public class Submit extends Function {
     
     public Sequence eval(Sequence contextSequence, Item contextItem) throws XPathException {
         FunctionReference callback = null;
-        if (getArgumentCount()>1) {
-            callback = (FunctionReference) getArgument(1).eval(contextSequence, contextItem).itemAt(0);
+        if (getArgumentCount()>2) {
+            callback = (FunctionReference) getArgument(2).eval(contextSequence, contextItem).itemAt(0);
         }
-        RunFunction f = new RunFunction(getContext(), contextSequence, getArgument(0), callback) {
+        RunFunction f = new RunFunction(getContext(), contextSequence, getArgument(1), callback) {
             @Override
             void remove() {
                 Module.futures.remove(uuid);
             }
         };
-        return new StringValue(Module.submit(f));
+        String executor = getArgument(0).eval(contextSequence, contextItem).itemAt(0).getStringValue();
+        return new StringValue(Module.submit(executor, f));
     }
 
 }

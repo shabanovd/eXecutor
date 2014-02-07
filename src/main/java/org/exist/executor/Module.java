@@ -65,21 +65,22 @@ public class Module extends AbstractInternalModule {
         return RELEASED_IN_VERSION;
     }
 
-    protected final static ExecutorService executor = Executors.newCachedThreadPool();
-    protected final static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10); //XXX: how mach?
+    protected final static Map <String, ExecutorService> executors = new HashMap<String, ExecutorService>();
+    protected final static Map <String, ScheduledExecutorService> schedulers = new HashMap<String, ScheduledExecutorService>();
 
     protected final static Map<String, Future> futures = new HashMap<String, Future>();
     protected final static Map<String, ScheduledFuture> scheduled = new HashMap<String, ScheduledFuture>();
 
-    protected static String submit(RunFunction task) {
-        Future future = executor.submit(task);
+    protected static String submit(String id, RunFunction task) {
+        Future future = executors.get(id).submit(task);
         futures.put(task.uuid, future);
         return task.uuid;
     }
 
-    protected static String shedule(RunFunction task, long t) {
-        ScheduledFuture future = scheduler.schedule(task, t, TimeUnit.MILLISECONDS);
+    protected static String shedule(String id, RunFunction task, long t) {
+        ScheduledFuture future = schedulers.get(id).schedule(task, t, TimeUnit.MILLISECONDS);
         scheduled.put(task.uuid, future);
         return task.uuid;
     }
+
 }
