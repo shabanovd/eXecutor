@@ -26,6 +26,13 @@ import org.exist.xquery.value.StringValue;
 
 import java.util.concurrent.TimeUnit;
 
+import static org.exist.executor.Module.NAMESPACE_URI;
+import static org.exist.executor.Module.PREFIX;
+import static org.exist.executor.Module.scheduled;
+import static org.exist.xquery.Cardinality.EXACTLY_ONE;
+import static org.exist.xquery.Cardinality.ZERO_OR_MORE;
+import static org.exist.xquery.value.Type.*;
+
 /**
  * @author <a href="mailto:shabanovd@gmail.com">Dmitriy Shabanov</a>
  *
@@ -34,25 +41,25 @@ public class Schedule extends Function {
 
     public final static FunctionSignature signatures[] = {
             new FunctionSignature(
-                    new QName("schedule", Module.NAMESPACE_URI, Module.PREFIX),
+                    new QName("schedule", NAMESPACE_URI, PREFIX),
                     "Schedule task. ",
                     new SequenceType[] {
-                            new FunctionParameterSequenceType("scheduler", Type.STRING, Cardinality.EXACTLY_ONE, ""),
-                            new FunctionParameterSequenceType("expression", Type.ITEM, Cardinality.EXACTLY_ONE, ""),
-                            new FunctionParameterSequenceType("time", Type.INTEGER, Cardinality.EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("scheduler", STRING, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("expression", ITEM, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("time", INTEGER, EXACTLY_ONE, ""),
                     },
-                    new FunctionReturnSequenceType(Type.NODE, Cardinality.ZERO_OR_MORE, "the results of the evaluated expression")
+                    new FunctionReturnSequenceType(ITEM, ZERO_OR_MORE, "the results of the evaluated expression")
             ),
             new FunctionSignature(
-                    new QName("schedule", Module.NAMESPACE_URI, Module.PREFIX),
+                    new QName("schedule", NAMESPACE_URI, PREFIX),
                     "Submit task. ",
                     new SequenceType[] {
-                            new FunctionParameterSequenceType("scheduler", Type.STRING, Cardinality.EXACTLY_ONE, ""),
-                            new FunctionParameterSequenceType("expression", Type.ITEM, Cardinality.EXACTLY_ONE, ""),
-                            new FunctionParameterSequenceType("time", Type.INTEGER, Cardinality.EXACTLY_ONE, ""),
-                            new FunctionParameterSequenceType("callback", Type.FUNCTION_REFERENCE, Cardinality.EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("scheduler", STRING, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("expression", ITEM, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("time", INTEGER, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("callback", FUNCTION_REFERENCE, EXACTLY_ONE, ""),
                     },
-                    new FunctionReturnSequenceType(Type.NODE, Cardinality.ZERO_OR_MORE, "the results of the evaluated expression")
+                    new FunctionReturnSequenceType(ITEM, ZERO_OR_MORE, "the results of the evaluated expression")
             ),
     };
 
@@ -68,7 +75,7 @@ public class Schedule extends Function {
         RunFunction f = new RunFunction(getContext(), contextSequence, getArgument(1), callback) {
             @Override
             void remove() {
-                Module.scheduled.remove(uuid);
+                scheduled.remove(uuid);
             }
         };
         long t = ((IntegerValue) getArgument(2).eval(contextSequence, contextItem).itemAt(0)).getLong();

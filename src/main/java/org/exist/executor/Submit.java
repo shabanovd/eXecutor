@@ -23,6 +23,15 @@ import org.exist.dom.QName;
 import org.exist.xquery.*;
 import org.exist.xquery.value.*;
 
+import static org.exist.executor.Module.NAMESPACE_URI;
+import static org.exist.executor.Module.PREFIX;
+import static org.exist.executor.Module.futures;
+import static org.exist.xquery.Cardinality.EXACTLY_ONE;
+import static org.exist.xquery.Cardinality.ZERO_OR_MORE;
+import static org.exist.xquery.value.Type.FUNCTION_REFERENCE;
+import static org.exist.xquery.value.Type.ITEM;
+import static org.exist.xquery.value.Type.STRING;
+
 /**
  * @author <a href="mailto:shabanovd@gmail.com">Dmitriy Shabanov</a>
  *
@@ -31,23 +40,23 @@ public class Submit extends Function {
     
     public final static FunctionSignature signatures[] = {
             new FunctionSignature(
-                    new QName("submit", Module.NAMESPACE_URI, Module.PREFIX),
+                    new QName("submit", NAMESPACE_URI, PREFIX),
                     "Submit task. ",
                     new SequenceType[] {
-                            new FunctionParameterSequenceType("executor", Type.STRING, Cardinality.EXACTLY_ONE, ""),
-                            new FunctionParameterSequenceType("expression", Type.ITEM, Cardinality.EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("executor", STRING, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("expression", ITEM, EXACTLY_ONE, ""),
                     },
-                    new FunctionReturnSequenceType(Type.NODE, Cardinality.ZERO_OR_MORE, "the results of the evaluated expression")
+                    new FunctionReturnSequenceType(ITEM, ZERO_OR_MORE, "the results of the evaluated expression")
             ),
             new FunctionSignature(
-                    new QName("submit", Module.NAMESPACE_URI, Module.PREFIX),
+                    new QName("submit", NAMESPACE_URI, PREFIX),
                     "Submit task. ",
                     new SequenceType[] {
-                            new FunctionParameterSequenceType("executor", Type.STRING, Cardinality.EXACTLY_ONE, ""),
-                            new FunctionParameterSequenceType("expression", Type.ITEM, Cardinality.EXACTLY_ONE, ""),
-                            new FunctionParameterSequenceType("callback", Type.FUNCTION_REFERENCE, Cardinality.EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("executor", STRING, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("expression", ITEM, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("callback", FUNCTION_REFERENCE, EXACTLY_ONE, ""),
                     },
-                    new FunctionReturnSequenceType(Type.NODE, Cardinality.ZERO_OR_MORE, "the results of the evaluated expression")
+                    new FunctionReturnSequenceType(ITEM, ZERO_OR_MORE, "the results of the evaluated expression")
             ),
     };
 
@@ -63,7 +72,7 @@ public class Submit extends Function {
         RunFunction f = new RunFunction(getContext(), contextSequence, getArgument(1), callback) {
             @Override
             void remove() {
-                Module.futures.remove(uuid);
+                futures.remove(uuid);
             }
         };
         String executor = getArgument(0).eval(contextSequence, contextItem).itemAt(0).getStringValue();

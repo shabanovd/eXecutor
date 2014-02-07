@@ -26,6 +26,7 @@ import java.util.concurrent.*;
 
 import org.exist.xquery.AbstractInternalModule;
 import org.exist.xquery.FunctionDef;
+import org.exist.xquery.XPathException;
 
 /**
  * @author <a href="mailto:shabanovd@gmail.com">Dmitriy Shabanov</a>
@@ -71,14 +72,18 @@ public class Module extends AbstractInternalModule {
     protected final static Map<String, Future> futures = new HashMap<String, Future>();
     protected final static Map<String, ScheduledFuture> scheduled = new HashMap<String, ScheduledFuture>();
 
-    protected static String submit(String id, RunFunction task) {
-        Future future = executors.get(id).submit(task);
+    protected static String submit(String name, RunFunction task) throws XPathException {
+        ExecutorService executor = executors.get(name);
+        if (executor == null) throw new XPathException("Unknown executor name: " + name);
+        Future future = executor.submit(task);
         futures.put(task.uuid, future);
         return task.uuid;
     }
 
-    protected static String shedule(String id, RunFunction task, long t) {
-        ScheduledFuture future = schedulers.get(id).schedule(task, t, TimeUnit.MILLISECONDS);
+    protected static String shedule(String name, RunFunction task, long t) throws XPathException {
+        ScheduledExecutorService scheduler = schedulers.get(name);
+        if (scheduler == null) throw new XPathException("Unknown scheduler name: " + name);
+        ScheduledFuture future = schedulers.get(name).schedule(task, t, TimeUnit.MILLISECONDS);
         scheduled.put(task.uuid, future);
         return task.uuid;
     }
