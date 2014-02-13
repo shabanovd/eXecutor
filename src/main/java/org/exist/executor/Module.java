@@ -19,14 +19,14 @@
  */
 package org.exist.executor;
 
+import org.exist.xquery.AbstractInternalModule;
+import org.exist.xquery.FunctionDef;
+import org.exist.xquery.XPathException;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
-
-import org.exist.xquery.AbstractInternalModule;
-import org.exist.xquery.FunctionDef;
-import org.exist.xquery.XPathException;
 
 /**
  * @author <a href="mailto:shabanovd@gmail.com">Dmitriy Shabanov</a>
@@ -49,6 +49,10 @@ public class Module extends AbstractInternalModule {
             new FunctionDef(Submit.signatures[1], Submit.class),
             new FunctionDef(Schedule.signatures[0], Schedule.class),
             new FunctionDef(Schedule.signatures[1], Schedule.class),
+            new FunctionDef(GetDelay.signatures[0], GetDelay.class),
+            new FunctionDef(IsCanceled.signatures[0], IsCanceled.class),
+            new FunctionDef(IsDone.signatures[0], IsDone.class),
+            new FunctionDef(Cancel.signatures[0], Cancel.class),
     };
     
     public Module(Map<String, List<? extends Object>> parameters) {
@@ -72,25 +76,27 @@ public class Module extends AbstractInternalModule {
     }
 
     protected final static Map <String, ExecutorService> executors = new HashMap<String, ExecutorService>();
-    protected final static Map <String, ScheduledExecutorService> schedulers = new HashMap<String, ScheduledExecutorService>();
 
     protected final static Map<String, Future> futures = new HashMap<String, Future>();
-    protected final static Map<String, ScheduledFuture> scheduled = new HashMap<String, ScheduledFuture>();
 
-    protected static String submit(String name, RunFunction task) throws XPathException {
+    protected static boolean submit(String name, RunFunction task) throws XPathException {
+        if (executors.containsKey(task.id)) return false;
         ExecutorService executor = executors.get(name);
         if (executor == null) throw new XPathException("Unknown executor name: " + name);
         Future future = executor.submit(task);
-        futures.put(task.uuid, future);
-        return task.uuid;
+        futures.put(task.id, future);
+        return true;
     }
 
-    protected static String shedule(String name, RunFunction task, long t) throws XPathException {
-        ScheduledExecutorService scheduler = schedulers.get(name);
+    protected static boolean schedule(String name, RunFunction task, long t) throws XPathException {
+        if (executors.containsKey(task.id)) return false;
+        ExecutorService executor = executors.get(name);
+        if (!(executor instanceof ScheduledExecutorService)) return false;
+        ScheduledExecutorService scheduler = (ScheduledExecutorService) executor;
         if (scheduler == null) throw new XPathException("Unknown scheduler name: " + name);
-        ScheduledFuture future = schedulers.get(name).schedule(task, t, TimeUnit.MILLISECONDS);
-        scheduled.put(task.uuid, future);
-        return task.uuid;
+        ScheduledFuture future = scheduler.schedule(task, t, TimeUnit.MILLISECONDS);
+        futures.put(task.id, future);
+        return true;
     }
 
 }

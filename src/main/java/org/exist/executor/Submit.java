@@ -20,17 +20,15 @@
 package org.exist.executor;
 
 import org.exist.dom.QName;
-import org.exist.xquery.*;
+import org.exist.xquery.Function;
+import org.exist.xquery.FunctionSignature;
+import org.exist.xquery.XPathException;
+import org.exist.xquery.XQueryContext;
 import org.exist.xquery.value.*;
 
-import static org.exist.executor.Module.NAMESPACE_URI;
-import static org.exist.executor.Module.PREFIX;
-import static org.exist.executor.Module.futures;
-import static org.exist.xquery.Cardinality.EXACTLY_ONE;
-import static org.exist.xquery.Cardinality.ZERO_OR_MORE;
-import static org.exist.xquery.value.Type.FUNCTION_REFERENCE;
-import static org.exist.xquery.value.Type.ITEM;
-import static org.exist.xquery.value.Type.STRING;
+import static org.exist.executor.Module.*;
+import static org.exist.xquery.Cardinality.*;
+import static org.exist.xquery.value.Type.*;
 
 /**
  * @author <a href="mailto:shabanovd@gmail.com">Dmitriy Shabanov</a>
@@ -43,20 +41,22 @@ public class Submit extends Function {
                     new QName("submit", NAMESPACE_URI, PREFIX),
                     "Submit task. ",
                     new SequenceType[] {
+                            new FunctionParameterSequenceType("id", STRING, EXACTLY_ONE, ""),
                             new FunctionParameterSequenceType("executor", STRING, EXACTLY_ONE, ""),
-                            new FunctionParameterSequenceType("expression", ITEM, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("expression", ITEM, ZERO_OR_MORE, ""),
                     },
-                    new FunctionReturnSequenceType(ITEM, ZERO_OR_MORE, "the results of the evaluated expression")
+                    new FunctionReturnSequenceType(BOOLEAN, EXACTLY_ONE, "Returns true() if task has been submitted and false() otherwise")
             ),
             new FunctionSignature(
                     new QName("submit", NAMESPACE_URI, PREFIX),
                     "Submit task. ",
                     new SequenceType[] {
+                            new FunctionParameterSequenceType("id", STRING, EXACTLY_ONE, ""),
                             new FunctionParameterSequenceType("executor", STRING, EXACTLY_ONE, ""),
-                            new FunctionParameterSequenceType("expression", ITEM, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("expression", ITEM, ZERO_OR_ONE, ""),
                             new FunctionParameterSequenceType("callback", FUNCTION_REFERENCE, EXACTLY_ONE, ""),
                     },
-                    new FunctionReturnSequenceType(ITEM, ZERO_OR_MORE, "the results of the evaluated expression")
+                    new FunctionReturnSequenceType(BOOLEAN, ZERO_OR_MORE, "the results of the evaluated expression")
             ),
     };
 
@@ -65,18 +65,19 @@ public class Submit extends Function {
     }
     
     public Sequence eval(Sequence contextSequence, Item contextItem) throws XPathException {
+        String id = getArgument(0).eval(contextSequence, contextItem).itemAt(0).getStringValue();
         FunctionReference callback = null;
-        if (getArgumentCount()>2) {
-            callback = (FunctionReference) getArgument(2).eval(contextSequence, contextItem).itemAt(0);
+        if (getArgumentCount()>3) {
+            callback = (FunctionReference) getArgument(3).eval(contextSequence, contextItem).itemAt(0);
         }
-        RunFunction f = new RunFunction(getContext(), contextSequence, getArgument(1), callback) {
+        RunFunction f = new RunFunction(id, getContext(), contextSequence, getArgument(2), callback) {
             @Override
             void remove() {
-                futures.remove(uuid);
+                futures.remove(id);
             }
         };
-        String executor = getArgument(0).eval(contextSequence, contextItem).itemAt(0).getStringValue();
-        return new StringValue(Module.submit(executor, f));
+        String executor = getArgument(1).eval(contextSequence, contextItem).itemAt(0).getStringValue();
+        return BooleanValue.valueOf(submit(executor, f));
     }
 
 }

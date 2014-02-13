@@ -20,11 +20,12 @@
 package org.exist.executor;
 
 import org.exist.dom.QName;
-import org.exist.xquery.*;
+import org.exist.xquery.BasicFunction;
+import org.exist.xquery.FunctionSignature;
+import org.exist.xquery.XPathException;
+import org.exist.xquery.XQueryContext;
 import org.exist.xquery.value.*;
-import org.exist.xquery.value.StringValue;
 
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import static org.exist.executor.Module.*;
@@ -99,23 +100,18 @@ public class Exec extends BasicFunction {
     public Sequence eval(Sequence[] args, Sequence contextSequence) throws XPathException {
 
         String name = args[0].itemAt(0).getStringValue();
+        if (executors.get(name) != null) return FALSE;
 
-        if (isCalledAs(SINGLE_THREAD_EXECUTOR)) {
-            if (executors.get(name) != null) return FALSE;
+        if (isCalledAs(SINGLE_THREAD_EXECUTOR))
             executors.put(name, Executors.newSingleThreadExecutor());
-        } else if (isCalledAs(FIXED_THREAD_POOL)) {
-            if (executors.get(name) != null) return FALSE;
+        else if (isCalledAs(FIXED_THREAD_POOL))
             executors.put(name, Executors.newFixedThreadPool(((IntegerValue)args[1].itemAt(0)).getInt()));
-        } else if (isCalledAs(CACHED_THREAD_POOL)) {
-            if (executors.get(name) != null) return FALSE;
+        else if (isCalledAs(CACHED_THREAD_POOL))
             executors.put(name, Executors.newCachedThreadPool());
-        } else if (isCalledAs(SINGLE_THREAD_SCHEDULED_EXECUTOR)) {
-            if (schedulers.get(name) != null) return FALSE;
-            schedulers.put(name, Executors.newSingleThreadScheduledExecutor());
-        } else {
-            if (schedulers.get(name) != null) return FALSE;
-            schedulers.put(name, Executors.newScheduledThreadPool(((IntegerValue) args[1].itemAt(0)).getInt()));
-        }
+        else if (isCalledAs(SINGLE_THREAD_SCHEDULED_EXECUTOR))
+            executors.put(name, Executors.newSingleThreadScheduledExecutor());
+        else
+            executors.put(name, Executors.newScheduledThreadPool(((IntegerValue) args[1].itemAt(0)).getInt()));
 
         return TRUE;
     }

@@ -27,7 +27,6 @@ import org.exist.xquery.XQueryContext;
 import org.exist.xquery.value.FunctionReference;
 import org.exist.xquery.value.Sequence;
 
-import java.util.UUID;
 import java.util.concurrent.Callable;
 
 /**
@@ -45,14 +44,15 @@ abstract class RunFunction implements Callable<Void> {
     Expression expr;
     FunctionReference callback;
 
-    final String uuid = UUID.randomUUID().toString();
+    final String id;
 
-    public RunFunction(XQueryContext context, Sequence contextSequence, Expression expr, FunctionReference callback) {
+    public RunFunction(String id, XQueryContext context, Sequence contextSequence, Expression expr, FunctionReference callback) {
+        this.id = id;
+        this.context = context.copyContext();
         final DBBroker broker = context.getBroker();
         db = broker.getDatabase();
         subject = broker.getSubject();
 
-        this.context = context.copyContext();
         this.contextSequence = contextSequence;
         this.callback = callback;
 
@@ -67,6 +67,7 @@ abstract class RunFunction implements Callable<Void> {
             broker = db.get(subject);
             Sequence r = expr.eval(contextSequence, null);
             if (callback != null) {
+                callback.setContext(context);
                 callback.evalFunction(contextSequence, null, new Sequence[]{r});
             }
         } finally {
