@@ -19,13 +19,14 @@
  */
 package org.exist.executor;
 
+import org.exist.xquery.AbstractInternalModule;
+import org.exist.xquery.FunctionDef;
+import org.exist.xquery.XPathException;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
-
-import org.exist.xquery.AbstractInternalModule;
-import org.exist.xquery.FunctionDef;
 
 /**
  * @author <a href="mailto:shabanovd@gmail.com">Dmitriy Shabanov</a>
@@ -39,10 +40,19 @@ public class Module extends AbstractInternalModule {
     private final static String DESCRIPTION = "Module provides a way of decoupling task submission from the mechanics of how each task will be run, including details of thread use, scheduling, etc..";
 
     private final static FunctionDef[] functions = {
+            new FunctionDef(Exec.signatures[0], Exec.class),
+            new FunctionDef(Exec.signatures[1], Exec.class),
+            new FunctionDef(Exec.signatures[2], Exec.class),
+            new FunctionDef(Exec.signatures[3], Exec.class),
+            new FunctionDef(Exec.signatures[4], Exec.class),
             new FunctionDef(Submit.signatures[0], Submit.class),
             new FunctionDef(Submit.signatures[1], Submit.class),
             new FunctionDef(Schedule.signatures[0], Schedule.class),
             new FunctionDef(Schedule.signatures[1], Schedule.class),
+            new FunctionDef(GetDelay.signatures[0], GetDelay.class),
+            new FunctionDef(IsCanceled.signatures[0], IsCanceled.class),
+            new FunctionDef(IsDone.signatures[0], IsDone.class),
+            new FunctionDef(Cancel.signatures[0], Cancel.class),
     };
     
     public Module(Map<String, List<? extends Object>> parameters) {
@@ -65,21 +75,28 @@ public class Module extends AbstractInternalModule {
         return RELEASED_IN_VERSION;
     }
 
-    protected final static ExecutorService executor = Executors.newCachedThreadPool();
-    protected final static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10); //XXX: how mach?
+    protected final static Map <String, ExecutorService> executors = new HashMap<String, ExecutorService>();
 
     protected final static Map<String, Future> futures = new HashMap<String, Future>();
-    protected final static Map<String, ScheduledFuture> scheduled = new HashMap<String, ScheduledFuture>();
 
-    protected static String submit(RunFunction task) {
+    protected static boolean submit(String name, RunFunction task) throws XPathException {
+        if (executors.containsKey(task.id)) return false;
+        ExecutorService executor = executors.get(name);
+        if (executor == null) throw new XPathException("Unknown executor name: " + name);
         Future future = executor.submit(task);
-        futures.put(task.uuid, future);
-        return task.uuid;
+        futures.put(task.id, future);
+        return true;
     }
 
-    protected static String shedule(RunFunction task, long t) {
+    protected static boolean schedule(String name, RunFunction task, long t) throws XPathException {
+        if (executors.containsKey(task.id)) return false;
+        ExecutorService executor = executors.get(name);
+        if (!(executor instanceof ScheduledExecutorService)) return false;
+        ScheduledExecutorService scheduler = (ScheduledExecutorService) executor;
+        if (scheduler == null) throw new XPathException("Unknown scheduler name: " + name);
         ScheduledFuture future = scheduler.schedule(task, t, TimeUnit.MILLISECONDS);
-        scheduled.put(task.uuid, future);
-        return task.uuid;
+        futures.put(task.id, future);
+        return true;
     }
+
 }

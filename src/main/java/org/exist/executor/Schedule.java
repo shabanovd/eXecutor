@@ -20,11 +20,16 @@
 package org.exist.executor;
 
 import org.exist.dom.QName;
-import org.exist.xquery.*;
+import org.exist.xquery.Function;
+import org.exist.xquery.FunctionSignature;
+import org.exist.xquery.XPathException;
+import org.exist.xquery.XQueryContext;
 import org.exist.xquery.value.*;
-import org.exist.xquery.value.StringValue;
 
-import java.util.concurrent.TimeUnit;
+import static org.exist.executor.Module.*;
+import static org.exist.xquery.Cardinality.EXACTLY_ONE;
+import static org.exist.xquery.Cardinality.ZERO_OR_MORE;
+import static org.exist.xquery.value.Type.*;
 
 /**
  * @author <a href="mailto:shabanovd@gmail.com">Dmitriy Shabanov</a>
@@ -34,23 +39,27 @@ public class Schedule extends Function {
 
     public final static FunctionSignature signatures[] = {
             new FunctionSignature(
-                    new QName("schedule", Module.NAMESPACE_URI, Module.PREFIX),
-                    "Submit task. ",
+                    new QName("schedule", NAMESPACE_URI, PREFIX),
+                    "Schedule task. ",
                     new SequenceType[] {
-                            new FunctionParameterSequenceType("expression", Type.ITEM, Cardinality.EXACTLY_ONE, ""),
-                            new FunctionParameterSequenceType("time", Type.INTEGER, Cardinality.EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("id", STRING, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("scheduler", STRING, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("expression", ITEM, ZERO_OR_MORE, ""),
+                            new FunctionParameterSequenceType("time", INTEGER, EXACTLY_ONE, ""),
                     },
-                    new FunctionReturnSequenceType(Type.NODE, Cardinality.ZERO_OR_MORE, "the results of the evaluated expression")
+                    new FunctionReturnSequenceType(BOOLEAN, ZERO_OR_MORE, "the results of the evaluated expression")
             ),
             new FunctionSignature(
-                    new QName("schedule", Module.NAMESPACE_URI, Module.PREFIX),
+                    new QName("schedule", NAMESPACE_URI, PREFIX),
                     "Submit task. ",
                     new SequenceType[] {
-                            new FunctionParameterSequenceType("expression", Type.ITEM, Cardinality.EXACTLY_ONE, ""),
-                            new FunctionParameterSequenceType("time", Type.INTEGER, Cardinality.EXACTLY_ONE, ""),
-                            new FunctionParameterSequenceType("callback", Type.FUNCTION_REFERENCE, Cardinality.EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("id", STRING, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("scheduler", STRING, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("expression", ITEM, ZERO_OR_MORE, ""),
+                            new FunctionParameterSequenceType("time", INTEGER, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("callback", FUNCTION_REFERENCE, EXACTLY_ONE, ""),
                     },
-                    new FunctionReturnSequenceType(Type.NODE, Cardinality.ZERO_OR_MORE, "the results of the evaluated expression")
+                    new FunctionReturnSequenceType(BOOLEAN, EXACTLY_ONE, "Returns true() if task has been scheduled and false() otherwise")
             ),
     };
 
@@ -59,18 +68,20 @@ public class Schedule extends Function {
     }
     
     public Sequence eval(Sequence contextSequence, Item contextItem) throws XPathException {
+        String id = getArgument(0).eval(contextSequence, contextItem).itemAt(0).getStringValue();
         FunctionReference callback = null;
-        if (getArgumentCount()>2) {
-            callback = (FunctionReference) getArgument(2).eval(contextSequence, contextItem).itemAt(0);
+        if (getArgumentCount()>4) {
+            callback = (FunctionReference) getArgument(4).eval(contextSequence, contextItem).itemAt(0);
         }
-        RunFunction f = new RunFunction(getContext(), contextSequence, getArgument(0), callback) {
+        RunFunction f = new RunFunction(id, getContext(), contextSequence, getArgument(2), callback) {
             @Override
             void remove() {
-                Module.scheduled.remove(uuid);
+                futures.remove(id);
             }
         };
-        long t = ((IntegerValue) getArgument(1).eval(contextSequence, contextItem).itemAt(0)).getLong();
-        return new StringValue(Module.shedule(f, t));
+        long t = ((IntegerValue) getArgument(3).eval(contextSequence, contextItem).itemAt(0)).getLong();
+        String scheduler = getArgument(1).eval(contextSequence, contextItem).itemAt(0).getStringValue();
+        return BooleanValue.valueOf(schedule(scheduler, f, t));
     }
 
 }

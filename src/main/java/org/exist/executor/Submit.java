@@ -20,8 +20,15 @@
 package org.exist.executor;
 
 import org.exist.dom.QName;
-import org.exist.xquery.*;
+import org.exist.xquery.Function;
+import org.exist.xquery.FunctionSignature;
+import org.exist.xquery.XPathException;
+import org.exist.xquery.XQueryContext;
 import org.exist.xquery.value.*;
+
+import static org.exist.executor.Module.*;
+import static org.exist.xquery.Cardinality.*;
+import static org.exist.xquery.value.Type.*;
 
 /**
  * @author <a href="mailto:shabanovd@gmail.com">Dmitriy Shabanov</a>
@@ -31,21 +38,25 @@ public class Submit extends Function {
     
     public final static FunctionSignature signatures[] = {
             new FunctionSignature(
-                    new QName("submit", Module.NAMESPACE_URI, Module.PREFIX),
+                    new QName("submit", NAMESPACE_URI, PREFIX),
                     "Submit task. ",
                     new SequenceType[] {
-                            new FunctionParameterSequenceType("expression", Type.ITEM, Cardinality.EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("id", STRING, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("executor", STRING, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("expression", ITEM, ZERO_OR_MORE, ""),
                     },
-                    new FunctionReturnSequenceType(Type.NODE, Cardinality.ZERO_OR_MORE, "the results of the evaluated expression")
+                    new FunctionReturnSequenceType(BOOLEAN, EXACTLY_ONE, "Returns true() if task has been submitted and false() otherwise")
             ),
             new FunctionSignature(
-                    new QName("submit", Module.NAMESPACE_URI, Module.PREFIX),
+                    new QName("submit", NAMESPACE_URI, PREFIX),
                     "Submit task. ",
                     new SequenceType[] {
-                            new FunctionParameterSequenceType("expression", Type.ITEM, Cardinality.EXACTLY_ONE, ""),
-                            new FunctionParameterSequenceType("callback", Type.FUNCTION_REFERENCE, Cardinality.EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("id", STRING, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("executor", STRING, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("expression", ITEM, ZERO_OR_ONE, ""),
+                            new FunctionParameterSequenceType("callback", FUNCTION_REFERENCE, EXACTLY_ONE, ""),
                     },
-                    new FunctionReturnSequenceType(Type.NODE, Cardinality.ZERO_OR_MORE, "the results of the evaluated expression")
+                    new FunctionReturnSequenceType(BOOLEAN, ZERO_OR_MORE, "the results of the evaluated expression")
             ),
     };
 
@@ -54,17 +65,19 @@ public class Submit extends Function {
     }
     
     public Sequence eval(Sequence contextSequence, Item contextItem) throws XPathException {
+        String id = getArgument(0).eval(contextSequence, contextItem).itemAt(0).getStringValue();
         FunctionReference callback = null;
-        if (getArgumentCount()>1) {
-            callback = (FunctionReference) getArgument(1).eval(contextSequence, contextItem).itemAt(0);
+        if (getArgumentCount()>3) {
+            callback = (FunctionReference) getArgument(3).eval(contextSequence, contextItem).itemAt(0);
         }
-        RunFunction f = new RunFunction(getContext(), contextSequence, getArgument(0), callback) {
+        RunFunction f = new RunFunction(id, getContext(), contextSequence, getArgument(2), callback) {
             @Override
             void remove() {
-                Module.futures.remove(uuid);
+                futures.remove(id);
             }
         };
-        return new StringValue(Module.submit(f));
+        String executor = getArgument(1).eval(contextSequence, contextItem).itemAt(0).getStringValue();
+        return BooleanValue.valueOf(submit(executor, f));
     }
 
 }
