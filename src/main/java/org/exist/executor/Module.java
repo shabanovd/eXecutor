@@ -36,7 +36,7 @@ public class Module extends AbstractInternalModule {
 
     public final static String NAMESPACE_URI = "http://exist-db.org/executor";
     public final static String PREFIX = "executor";
-    private final static String RELEASED_IN_VERSION = "eXist-2.!";
+    private final static String RELEASED_IN_VERSION = "eXist-2.1";
     private final static String DESCRIPTION = "Module provides a way of decoupling task submission from the mechanics of how each task will be run, including details of thread use, scheduling, etc..";
 
     private final static FunctionDef[] functions = {
