@@ -20,20 +20,30 @@
 package org.exist.executor;
 
 import org.exist.Database;
+import org.exist.dom.BinaryDocument;
 import org.exist.security.Subject;
+import org.exist.security.xacml.AccessContext;
+import org.exist.source.DBSource;
+import org.exist.source.Source;
+import org.exist.source.SourceFactory;
+import org.exist.source.StringSource;
 import org.exist.storage.DBBroker;
-import org.exist.xquery.Expression;
-import org.exist.xquery.XQueryContext;
+import org.exist.storage.XQueryPool;
+import org.exist.xquery.*;
+import org.exist.xquery.value.AnyURIValue;
 import org.exist.xquery.value.FunctionReference;
+import org.exist.xquery.value.Item;
 import org.exist.xquery.value.Sequence;
 
 import java.util.concurrent.Callable;
+
+import static org.exist.executor.Module.futures;
 
 /**
  * @author <a href="mailto:shabanovd@gmail.com">Dmitriy Shabanov</a>
  *
  */
-abstract class RunFunction implements Callable<Void> {
+class RunFunction implements Callable<Void> {
 
     Database db;
     Subject subject;
@@ -41,13 +51,16 @@ abstract class RunFunction implements Callable<Void> {
     XQueryContext context;
     Sequence contextSequence;
 
-    Expression expr;
-    FunctionReference callback;
+
+    Sequence r;
+    //Expression expr;
+    Item callback;
 
     final String id;
 
-    public RunFunction(String id, XQueryContext context, Sequence contextSequence, Expression expr, FunctionReference callback) {
+    public RunFunction(String id, XQueryContext context, Sequence contextSequence, Expression expr, Item callback) throws XPathException {
         this.id = id;
+        context.setShared(true);
         this.context = context.copyContext();
         final DBBroker broker = context.getBroker();
         db = broker.getDatabase();
@@ -57,7 +70,8 @@ abstract class RunFunction implements Callable<Void> {
         this.callback = callback;
 
         //XXX: copy!!! and replace context
-        this.expr = expr;
+        //this.expr = expr;
+        this.r = expr.eval(contextSequence, null);
     }
 
     @Override
@@ -65,10 +79,24 @@ abstract class RunFunction implements Callable<Void> {
         DBBroker broker = null;
         try {
             broker = db.get(subject);
-            Sequence r = expr.eval(contextSequence, null);
+            //Sequence r = expr.eval(contextSequence, null);
             if (callback != null) {
-                callback.setContext(context);
-                callback.evalFunction(contextSequence, null, new Sequence[]{r});
+                if (callback instanceof FunctionReference) {
+                    FunctionReference f = (FunctionReference) callback;
+                    f.setContext(context);
+                    f.evalFunction(contextSequence, null, new Sequence[]{r});
+                } else {
+                    Source xq;
+                    if (callback instanceof AnyURIValue)
+                        xq = SourceFactory.getSource(broker, null, callback.getStringValue(), false);
+                    else
+                        xq = new StringSource(callback.getStringValue());
+                    broker.getConfiguration().setProperty(XQueryContext.PROPERTY_XQUERY_RAISE_ERROR_ON_FAILED_RETRIEVAL, true);
+                    XQuery xqs = broker.getXQueryService();
+                    XQueryContext context = new XQueryContext(broker.getBrokerPool(), AccessContext.XMLDB);
+                    CompiledXQuery compiled = xqs.compile(context, xq);
+                    xqs.execute(compiled, r);
+                }
             }
         } finally {
             remove();
@@ -77,5 +105,8 @@ abstract class RunFunction implements Callable<Void> {
         return null;
     }
 
-    abstract void remove();
+    protected void remove() {
+        futures.remove(id);
+    }
+    ;
 }

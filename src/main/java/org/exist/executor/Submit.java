@@ -53,8 +53,8 @@ public class Submit extends Function {
                     new SequenceType[] {
                             new FunctionParameterSequenceType("id", STRING, EXACTLY_ONE, ""),
                             new FunctionParameterSequenceType("executor", STRING, EXACTLY_ONE, ""),
-                            new FunctionParameterSequenceType("expression", ITEM, ZERO_OR_ONE, ""),
-                            new FunctionParameterSequenceType("callback", FUNCTION_REFERENCE, EXACTLY_ONE, ""),
+                            new FunctionParameterSequenceType("expression", ITEM, ZERO_OR_MORE, ""),
+                            new FunctionParameterSequenceType("callback", ITEM, EXACTLY_ONE, ""),
                     },
                     new FunctionReturnSequenceType(BOOLEAN, ZERO_OR_MORE, "the results of the evaluated expression")
             ),
@@ -66,16 +66,11 @@ public class Submit extends Function {
     
     public Sequence eval(Sequence contextSequence, Item contextItem) throws XPathException {
         String id = getArgument(0).eval(contextSequence, contextItem).itemAt(0).getStringValue();
-        FunctionReference callback = null;
+        Item callback = null;
         if (getArgumentCount()>3) {
-            callback = (FunctionReference) getArgument(3).eval(contextSequence, contextItem).itemAt(0);
+            callback =  getArgument(3).eval(contextSequence, contextItem).itemAt(0);
         }
-        RunFunction f = new RunFunction(id, getContext(), contextSequence, getArgument(2), callback) {
-            @Override
-            void remove() {
-                futures.remove(id);
-            }
-        };
+        RunFunction f = new RunFunction(id, getContext(), contextSequence, getArgument(2), callback);
         String executor = getArgument(1).eval(contextSequence, contextItem).itemAt(0).getStringValue();
         return BooleanValue.valueOf(submit(executor, f));
     }
