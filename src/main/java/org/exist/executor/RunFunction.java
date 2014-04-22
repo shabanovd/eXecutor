@@ -27,6 +27,7 @@ import org.exist.source.DBSource;
 import org.exist.source.Source;
 import org.exist.source.SourceFactory;
 import org.exist.source.StringSource;
+import org.exist.storage.BrokerPool;
 import org.exist.storage.DBBroker;
 import org.exist.storage.XQueryPool;
 import org.exist.xquery.*;
@@ -76,9 +77,8 @@ class RunFunction implements Callable<Void> {
 
     @Override
     public Void call() throws Exception {
-        DBBroker broker = null;
+        DBBroker broker = db.get(subject);
         try {
-            broker = db.get(subject);
             //Sequence r = expr.eval(contextSequence, null);
             if (callback != null) {
                 if (callback instanceof FunctionReference) {
@@ -86,16 +86,26 @@ class RunFunction implements Callable<Void> {
                     f.setContext(context);
                     f.evalFunction(contextSequence, null, new Sequence[]{r});
                 } else {
-                    Source xq;
-                    if (callback instanceof AnyURIValue)
-                        xq = SourceFactory.getSource(broker, null, callback.getStringValue(), false);
-                    else
-                        xq = new StringSource(callback.getStringValue());
-                    broker.getConfiguration().setProperty(XQueryContext.PROPERTY_XQUERY_RAISE_ERROR_ON_FAILED_RETRIEVAL, true);
-                    XQuery xqs = broker.getXQueryService();
-                    XQueryContext context = new XQueryContext(broker.getBrokerPool(), AccessContext.XMLDB);
-                    CompiledXQuery compiled = xqs.compile(context, xq);
-                    xqs.execute(compiled, r);
+                    Source xqs = null;
+                    CompiledXQuery xq = null;
+                    BrokerPool pool = broker.getBrokerPool();
+                    XQuery xquery = broker.getXQueryService();
+                    try {
+                        System.out.println("Execute task via xquery: " + callback.getStringValue());
+                        if (callback instanceof AnyURIValue)
+                            xqs = SourceFactory.getSource(broker, null, callback.getStringValue(), false);
+                        else
+                            xqs = new StringSource(callback.getStringValue());
+                        xq = broker.getBrokerPool().getXQueryPool().borrowCompiledXQuery(broker, xqs);
+                        if (xq == null) {
+                            XQueryContext context = new XQueryContext(broker.getBrokerPool(), AccessContext.REST);
+                            xq = xquery.compile(context, xqs);
+                        }
+                        xquery.execute(xq, r);
+                    } finally {
+                        if (xq != null & xqs != null)
+                            pool.getXQueryPool().returnCompiledXQuery(xqs, xq);
+                    }
                 }
             }
         } finally {
