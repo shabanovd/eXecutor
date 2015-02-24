@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.exist-db</groupId>
 	<artifactId>eXecutor</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.2</version>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -48,4 +48,12 @@
 			<url>https://raw.github.com/eXist-db/mvn-repo/master/</url>
 		</repository>
 	</repositories>
+
+    <distributionManagement>
+        <repository>
+            <id>mvn-repo</id>
+            <url>file:../../mvn-repo/</url>
+        </repository>
+    </distributionManagement>
+
 </project>
