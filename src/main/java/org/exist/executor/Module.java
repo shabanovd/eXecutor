@@ -1,6 +1,6 @@
 /*
  *  eXist Open Source Native XML Database
- *  Copyright (C) 2001-2014 The eXist Project
+ *  Copyright (C) 2001-2015 The eXist Project
  *  http://exist-db.org
  *
  *  This program is free software; you can redistribute it and/or
@@ -91,12 +91,11 @@ public class Module extends AbstractInternalModule {
     protected static boolean schedule(String name, RunFunction task, long t) throws XPathException {
         if (executors.containsKey(task.id)) return false;
         ExecutorService executor = executors.get(name);
+        if (executor == null) throw new XPathException("Unknown scheduler name: " + name);
         if (!(executor instanceof ScheduledExecutorService)) return false;
         ScheduledExecutorService scheduler = (ScheduledExecutorService) executor;
-        if (scheduler == null) throw new XPathException("Unknown scheduler name: " + name);
         ScheduledFuture future = scheduler.schedule(task, t, TimeUnit.MILLISECONDS);
         futures.put(task.id, future);
         return true;
     }
-
 }

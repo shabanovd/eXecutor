@@ -1,6 +1,6 @@
 /*
  *  eXist Open Source Native XML Database
- *  Copyright (C) 2001-2014 The eXist Project
+ *  Copyright (C) 2001-2015 The eXist Project
  *  http://exist-db.org
  *
  *  This program is free software; you can redistribute it and/or
@@ -19,17 +19,15 @@
  */
 package org.exist.executor;
 
+import org.apache.log4j.Logger;
 import org.exist.Database;
-import org.exist.dom.BinaryDocument;
 import org.exist.security.Subject;
 import org.exist.security.xacml.AccessContext;
-import org.exist.source.DBSource;
 import org.exist.source.Source;
 import org.exist.source.SourceFactory;
 import org.exist.source.StringSource;
 import org.exist.storage.BrokerPool;
 import org.exist.storage.DBBroker;
-import org.exist.storage.XQueryPool;
 import org.exist.xquery.*;
 import org.exist.xquery.value.AnyURIValue;
 import org.exist.xquery.value.FunctionReference;
@@ -45,6 +43,8 @@ import static org.exist.executor.Module.futures;
  *
  */
 class RunFunction implements Callable<Void> {
+
+    private final static Logger logger = Logger.getLogger(Cancel.class);
 
     Database db;
     Subject subject;
@@ -91,7 +91,7 @@ class RunFunction implements Callable<Void> {
                     BrokerPool pool = broker.getBrokerPool();
                     XQuery xquery = broker.getXQueryService();
                     try {
-                        System.out.println("Execute task via xquery: " + callback.getStringValue());
+                        if (logger.isDebugEnabled()) logger.debug("Execute task via xquery: " + callback.getStringValue());
                         if (callback instanceof AnyURIValue)
                             xqs = SourceFactory.getSource(broker, null, callback.getStringValue(), false);
                         else
@@ -118,5 +118,4 @@ class RunFunction implements Callable<Void> {
     protected void remove() {
         futures.remove(id);
     }
-    ;
 }

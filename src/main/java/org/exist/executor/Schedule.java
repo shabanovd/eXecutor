@@ -1,6 +1,6 @@
 /*
  *  eXist Open Source Native XML Database
- *  Copyright (C) 2001-2014 The eXist Project
+ *  Copyright (C) 2001-2015 The eXist Project
  *  http://exist-db.org
  *
  *  This program is free software; you can redistribute it and/or
@@ -78,5 +78,4 @@ public class Schedule extends Function {
         String scheduler = getArgument(1).eval(contextSequence, contextItem).itemAt(0).getStringValue();
         return BooleanValue.valueOf(schedule(scheduler, f, t));
     }
-
 }

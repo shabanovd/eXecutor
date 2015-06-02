@@ -1,6 +1,6 @@
 /*
  *  eXist Open Source Native XML Database
- *  Copyright (C) 2001-2014 The eXist Project
+ *  Copyright (C) 2001-2015 The eXist Project
  *  http://exist-db.org
  *
  *  This program is free software; you can redistribute it and/or
@@ -78,17 +78,11 @@ public class ExecutorTest {
     }
     
     private Sequence eval(String query) throws Exception {
-        DBBroker broker = null;
-        XQuery xquery = null;
-
-        try {
-            broker = db.get(db.getSecurityManager().getSystemSubject());
-            xquery = broker.getXQueryService();
+        try (DBBroker broker = db.get(db.getSecurityManager().getSystemSubject())) {
+            XQuery  xquery = broker.getXQueryService();
 
             return xquery.execute(query, null, AccessContext.TEST);
 
-        } finally {
-            db.release(broker);
         }
     }
 }
