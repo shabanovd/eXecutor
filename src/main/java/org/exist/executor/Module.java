@@ -75,11 +75,46 @@ public class Module extends AbstractInternalModule {
         return RELEASED_IN_VERSION;
     }
 
-    protected final static Map <String, ExecutorService> executors = new HashMap<String, ExecutorService>();
+    protected final static Map<String, ExecutorService> executors = new HashMap<>();
 
-    protected final static Map<String, Future> futures = new HashMap<String, Future>();
+    public static synchronized boolean newSingleThreadExecutor(String name) throws XPathException {
+        if (executors.get(name) != null) return false;
+        executors.put(name, Executors.newSingleThreadExecutor());
 
-    protected static boolean submit(String name, RunFunction task) throws XPathException {
+        return true;
+    }
+
+    public static synchronized boolean newFixedThreadPool(String name, int nThreads) throws XPathException {
+        if (executors.get(name) != null) return false;
+        executors.put(name, Executors.newFixedThreadPool(nThreads));
+
+        return true;
+    }
+
+    public static synchronized boolean newCachedThreadPool(String name) throws XPathException {
+        if (executors.get(name) != null) return false;
+        executors.put(name, Executors.newCachedThreadPool());
+
+        return true;
+    }
+
+    public static synchronized boolean newSingleThreadScheduledExecutor(String name) throws XPathException {
+        if (executors.get(name) != null) return false;
+        executors.put(name, Executors.newSingleThreadScheduledExecutor());
+
+        return true;
+    }
+
+    public static synchronized boolean newScheduledThreadPool(String name, int corePoolSize) throws XPathException {
+        if (executors.get(name) != null) return false;
+        executors.put(name, Executors.newScheduledThreadPool(corePoolSize));
+
+        return true;
+    }
+
+    protected final static Map<String, Future> futures = new HashMap<>();
+
+    public static boolean submit(String name, RunFunction task) throws XPathException {
         if (executors.containsKey(task.id)) return false;
         ExecutorService executor = executors.get(name);
         if (executor == null) throw new XPathException("Unknown executor name: " + name);
@@ -88,7 +123,7 @@ public class Module extends AbstractInternalModule {
         return true;
     }
 
-    protected static boolean schedule(String name, RunFunction task, long t) throws XPathException {
+    public static boolean schedule(String name, RunFunction task, long t) throws XPathException {
         if (executors.containsKey(task.id)) return false;
         ExecutorService executor = executors.get(name);
         if (executor == null) throw new XPathException("Unknown scheduler name: " + name);

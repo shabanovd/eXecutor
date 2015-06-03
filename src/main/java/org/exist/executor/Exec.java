@@ -26,8 +26,6 @@ import org.exist.xquery.XPathException;
 import org.exist.xquery.XQueryContext;
 import org.exist.xquery.value.*;
 
-import java.util.concurrent.Executors;
-
 import static org.exist.executor.Module.*;
 import static org.exist.xquery.Cardinality.EXACTLY_ONE;
 import static org.exist.xquery.value.BooleanValue.FALSE;
@@ -100,19 +98,24 @@ public class Exec extends BasicFunction {
     public Sequence eval(Sequence[] args, Sequence contextSequence) throws XPathException {
 
         String name = args[0].itemAt(0).getStringValue();
-        if (executors.get(name) != null) return FALSE;
+
+        boolean res;
 
         if (isCalledAs(SINGLE_THREAD_EXECUTOR))
-            executors.put(name, Executors.newSingleThreadExecutor());
-        else if (isCalledAs(FIXED_THREAD_POOL))
-            executors.put(name, Executors.newFixedThreadPool(((IntegerValue)args[1].itemAt(0)).getInt()));
-        else if (isCalledAs(CACHED_THREAD_POOL))
-            executors.put(name, Executors.newCachedThreadPool());
-        else if (isCalledAs(SINGLE_THREAD_SCHEDULED_EXECUTOR))
-            executors.put(name, Executors.newSingleThreadScheduledExecutor());
-        else
-            executors.put(name, Executors.newScheduledThreadPool(((IntegerValue) args[1].itemAt(0)).getInt()));
+            res = newSingleThreadExecutor(name);
 
-        return TRUE;
+        else if (isCalledAs(FIXED_THREAD_POOL))
+            res = newFixedThreadPool(name, ((IntegerValue) args[1].itemAt(0)).getInt());
+
+        else if (isCalledAs(CACHED_THREAD_POOL))
+            res = newCachedThreadPool(name);
+
+        else if (isCalledAs(SINGLE_THREAD_SCHEDULED_EXECUTOR))
+            res = newSingleThreadScheduledExecutor(name);
+
+        else
+            res = newScheduledThreadPool(name, ((IntegerValue) args[1].itemAt(0)).getInt());
+
+        return res ? TRUE : FALSE;
     }
 }
