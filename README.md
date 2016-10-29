@@ -11,7 +11,7 @@ executor:create-fixed-thread-pool("uuid3", 1)
 executor:create-scheduled-thread-pool("uuid4", 10)
 ```
 
-The task scheduled by function call
+The task scheduled by function call:
 ```
 executor:schedule($task-id, $queue-id, $param, $time, $xq-uri)
 ```
@@ -26,4 +26,4 @@ The task placed to executor pool by `executor:submit($task-id, $queue-id, $param
 
 Functions `executor:is-done($task-id)`, `executor:is-canceled($task-id)` and `executor:get-delay($task-id)` can be used to query task status.
 
-Task can be cancel by `cancel($task-id, $mayInterrupt)` function call.
+Task can be cancel by `executor:cancel($task-id, $mayInterrupt)` function call.
